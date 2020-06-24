@@ -1,36 +1,60 @@
---[[
+-- About `hyper` key:
+--   I'm using Karabiner-Elements to define caps lock as hyper
+-- 
+--   NOTE: emacs isn't happy if shift is included here - apparently
+--   holding cmd-alt-ctrl-shift during startup will stop emacs from
+--   loading init.el
 
-This is a configuration for Hammerspoon:
-- reload config: cmd-ctrl-alt-R
-- window layout management:
-   - cmd-ctrl-alt-up: Toggle current window to maximize;
-   - cmd-ctrl-alt-left: Toggle current window to left/restore;
-   - cmd-ctrl-alt-right: Toggle current window to right/restore;
-- eject all: cmd-ctrl-alt-E
-- mail: cmd-ctrl-alt-M
-- journal/deft: cmd-ctrl-alt-J
-- chrome: F3 (note: fn-unshifted using FunctionFlip)
-- calendar: F4 (note: fn-unshifted using FunctionFlip)
+hyper = {"cmd", "ctrl", "alt"}
 
---]]
-
-
---hs.logger.defaultLogLevel("debug")
-
-
---allMods = {"cmd", "ctrl", "alt"}
-
--- Karabiner-Elements used to define caps lock:
-hyper = {"cmd", "ctrl", "alt", "shift"}
-
--- quickly reload config:
+-- open console and reload init file
 hs.hotkey.bind(hyper, "R", function()
-		  hs.reload()
 		  hs.openConsole(True)
-		  hs.notify.new({title="Hammerspoon",
-				 autoWithdraw=true,
-				 informativeText="Config Reloaded"}):send()
+		  hs.reload()
 end)
+
+-- edit init file
+hs.hotkey.bind(hyper, "H", function()
+		  hs.execute("open -a Emacs.app --args ~/.hammerspoon/init.lua &")
+end)
+
+hs.hotkey.bind(hyper, "E", function()
+		  hs.execute("~/scripts/ejectall &")
+end)
+
+hs.hotkey.bind(hyper, "J", function()
+		  hs.execute("~/scripts/deft &")
+end)
+
+hs.hotkey.bind(hyper, "T", function()
+		  hs.execute("~/scripts/todo &")
+end)
+
+hs.hotkey.bind({"cmd"}, "1", function()
+      hs.execute("open /Applications/iTerm.app &")
+end)
+
+-- Note: chromedef runs chrome using "Default" profile
+function gochrome()
+   hs.execute("~/scripts/chromedef")
+end
+hs.hotkey.bind(hyper, "G", gochrome)
+hs.hotkey.bind({}, "F3", gochrome)
+
+function gocal()
+   os.execute("~/scripts/chromedef https://calendar.google.com")
+end
+hs.hotkey.bind(hyper, "C", gocal)
+hs.hotkey.bind({}, "F4", gocal)
+
+function gomail()
+   os.execute("~/scripts/chromedef https://mail.google.com")
+end
+hs.hotkey.bind(hyper, "M", gomail)
+
+
+-- these window manipulation functions and bindings I nabbed from
+-- some on-line examples...
 
 hs.window.animationDuration = 0
 previousFrameSizes = {}
@@ -107,50 +131,3 @@ end
 bindResizeAndRestoreToKeys("Up", getMaxWinFrame)
 bindResizeAndRestoreToKeys("Left", getFillLeftWinFrame)
 bindResizeAndRestoreToKeys("Right", getFillRightWinFrame)
-
-hs.hotkey.bind(hyper, "E", function()
-		  os.execute("~/scripts/ejectall &")
-end)
-
-hs.hotkey.bind(hyper, "J", function()
-		  os.execute("~/scripts/deft &")
-end)
-
-hs.hotkey.bind(hyper, "T", function()
-		  os.execute("~/scripts/todo &")
-end)
-
--- quick markdown preview of paste buffer contents
-hs.hotkey.bind(hyper, "P", function()
-		  os.execute("(pbpaste >/tmp/temp.md && open -a Markoff /tmp/temp.md) &")
-end)
-
-hs.hotkey.bind({}, "F3", function()
-      os.execute([["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" "--profile-directory=Default"]]);
-end)
-
-
-hs.hotkey.bind({}, "F4", function()
-      os.execute([["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" "--profile-directory=Default" "https://calendar.google.com" ]]);
-end)
-
-hs.hotkey.bind(hyper, "M", function()
-	os.execute([["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" "--profile-directory=Default" "https://mail.google.com" ]]);
-end)
-
-hs.hotkey.bind({"cmd"}, "1", function()
-      os.execute("open /Applications/iTerm.app &")
-end)
-
---[[
-hs.hotkey.bind({"cmd"}, "1", function()
-      -- if iTerm is running, open new window. Otherwise start new instance
-      local term = hs.appfinder.appFromName("iTerm2")
-      if term then
-	 term:selectMenuItem({"Shell", "New Window"})	 
-      else
-	 hs.application.launchOrFocus("iTerm")
-      end
-end)
---]]
-

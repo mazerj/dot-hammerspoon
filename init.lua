@@ -5,58 +5,74 @@
 --   holding cmd-alt-ctrl-shift during startup will stop emacs from
 --   loading init.el
 
+print "*** INIT: ~/.hammerspoon/init.lua ***"
+
 hyper = {"cmd", "ctrl", "alt"}
 
--- open console and reload init file
+-- reload init file
 hs.hotkey.bind(hyper, "R", function()
-		  hs.openConsole(True)
-		  hs.reload()
+                  hs.reload()
+                  -- note: this message doesn't clear because of reload causes
+                  -- hammerspoon to loose some state:
+                  -- hs.notify.new({title="Hammerspoon",
+                  --               informativeText="Reloading Hammerspoon config"}):send()
 end)
 
--- edit init file
-hs.hotkey.bind(hyper, "H", function()
-		  hs.execute("open -a Emacs.app --args ~/.hammerspoon/init.lua &")
+-----------------------------------------------------------------------
+
+-- open remote vscode on raclette
+hs.hotkey.bind(hyper, "V", function()
+                  os.execute("~/scripts/code --remote ssh-remote+raclette /home/mazer/src/taut &")
 end)
 
+-- eject all media
 hs.hotkey.bind(hyper, "E", function()
-		  hs.execute("~/scripts/ejectall &")
+                  hs.notify.new({title="Hammerspoon",
+                                 informativeText="Ejecting media"}):send()
+                  os.execute("~/scripts/ejectall &")
 end)
 
+-- open journal stuff in notion
 hs.hotkey.bind(hyper, "J", function()
-		  hs.execute("~/scripts/deft &")
+                  os.execute("~/scripts/chromedef https://www.notion.so &")
 end)
 
-hs.hotkey.bind(hyper, "T", function()
-		  hs.execute("~/scripts/todo &")
-end)
-
+-- open terminal window
 hs.hotkey.bind({"cmd"}, "1", function()
-      hs.execute("open /Applications/iTerm.app &")
+      --os.execute("open /Applications/iTerm.app &")
+      -- this doesn't work if iterm not running:
+      os.execute("~/scripts/newiterm3")              
 end)
 
--- Note: chromedef runs chrome using "Default" profile
+-- open personal chrome
 function gochrome()
-   hs.execute("~/scripts/chromedef")
+   os.execute("~/scripts/chromedef &")
 end
 hs.hotkey.bind(hyper, "G", gochrome)
-hs.hotkey.bind({}, "F3", gochrome)
 
+-- open personal calendar
 function gocal()
-   os.execute("~/scripts/chromedef https://calendar.google.com")
+   os.execute("~/scripts/chromedef https://calendar.google.com &")
 end
 hs.hotkey.bind(hyper, "C", gocal)
-hs.hotkey.bind({}, "F4", gocal)
 
+-- open personal mail
 function gomail()
-   os.execute("~/scripts/chromedef https://mail.google.com")
+   os.execute("~/scripts/chromedef https://mail.google.com &")
 end
 hs.hotkey.bind(hyper, "M", gomail)
 
+-- open taut chrome
+function gochromedec()
+   os.execute("~/scripts/chromedec &")
+end
+hs.hotkey.bind(hyper, "D", gochromedec)
 
--- these window manipulation functions and bindings I nabbed from
--- some on-line examples...
+-----------------------------------------------------------------
 
-hs.window.animationDuration = 0
+-- from: https://github.com/waigx/hammerspoon-config/blob/master/init.lua
+-- this binds hyper-F to toggle maximize window
+
 previousFrameSizes = {}
 
 function isAlmostEqualToCurWinFrame(geo)
@@ -66,7 +82,7 @@ function isAlmostEqualToCurWinFrame(geo)
    if math.abs(curWinFrame.x - geo.x) < epsilon and
       math.abs(curWinFrame.y - geo.y) < epsilon and
       math.abs(curWinFrame.w - geo.w) < epsilon and
-   math.abs(curWinFrame.h - geo.h) < epsilon then
+      math.abs(curWinFrame.h - geo.h) < epsilon then
       return true
    else
       return false
@@ -103,7 +119,7 @@ end
 function isPredefinedWinFrameSize()
    if isAlmostEqualToCurWinFrame(getMaxWinFrame()) or
       isAlmostEqualToCurWinFrame(getFillLeftWinFrame()) or
-   isAlmostEqualToCurWinFrame(getFillRightWinFrame()) then
+      isAlmostEqualToCurWinFrame(getFillRightWinFrame()) then
       return true
    else
       return false
@@ -112,22 +128,20 @@ end
 
 function bindResizeAndRestoreToKeys(key, resize_frame_fn)
    hs.hotkey.bind(hyper, key, function()
-		     local curWin = hs.window.focusedWindow()
-		     local curWinFrame = curWin:frame()
-		     local targetFrame = resize_frame_fn()
+                     local curWin = hs.window.focusedWindow()
+                     local curWinFrame = curWin:frame()
+                     local targetFrame = resize_frame_fn()
 
-		     if isPredefinedWinFrameSize() and not isAlmostEqualToCurWinFrame(targetFrame) then
-			curWin:setFrame(targetFrame)
-		     elseif previousFrameSizes[curWin:id()] then
-			curWin:setFrame(previousFrameSizes[curWin:id()])
-			previousFrameSizes[curWin:id()] = nil
-		     else
-			previousFrameSizes[curWin:id()] = curWinFrame
-			curWin:setFrame(targetFrame)
-		     end
+                     if isPredefinedWinFrameSize() and not isAlmostEqualToCurWinFrame(targetFrame) then
+                        curWin:setFrame(targetFrame)
+                     elseif previousFrameSizes[curWin:id()] then
+                        curWin:setFrame(previousFrameSizes[curWin:id()])
+                        previousFrameSizes[curWin:id()] = nil
+                     else
+                        previousFrameSizes[curWin:id()] = curWinFrame
+                        curWin:setFrame(targetFrame)
+                     end
    end)
 end
 
-bindResizeAndRestoreToKeys("Up", getMaxWinFrame)
-bindResizeAndRestoreToKeys("Left", getFillLeftWinFrame)
-bindResizeAndRestoreToKeys("Right", getFillRightWinFrame)
+bindResizeAndRestoreToKeys("F", getMaxWinFrame)

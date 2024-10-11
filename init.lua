@@ -94,32 +94,21 @@ function getMaxWinFrame()
    return curWin:screen():frame()
 end
 
-function getFillLeftWinFrame()
+function getQuarterWinFrame()
    local curWin = hs.window.focusedWindow()
    local curWinFrame = curWin:frame()
    local maxFrame = curWin:screen():frame()
    curWinFrame.x = maxFrame.x
    curWinFrame.y = maxFrame.y
    curWinFrame.w = maxFrame.w / 2
-   curWinFrame.h = maxFrame.h
-   return curWinFrame
-end
-
-function getFillRightWinFrame()
-   local curWin = hs.window.focusedWindow()
-   local curWinFrame = curWin:frame()
-   local maxFrame = curWin:screen():frame()
-   curWinFrame.x = maxFrame.x + maxFrame.w / 2
-   curWinFrame.y = maxFrame.y
-   curWinFrame.w = maxFrame.w / 2
-   curWinFrame.h = maxFrame.h
+   curWinFrame.h = maxFrame.h / 2
    return curWinFrame
 end
 
 function isPredefinedWinFrameSize()
-   if isAlmostEqualToCurWinFrame(getMaxWinFrame()) or
-      isAlmostEqualToCurWinFrame(getFillLeftWinFrame()) or
-      isAlmostEqualToCurWinFrame(getFillRightWinFrame()) then
+   if isAlmostEqualToCurWinFrame(getMaxWinFrame())
+      or isAlmostEqualToCurWinFrame(getQuarterWinFrame())
+   then
       return true
    else
       return false
@@ -132,7 +121,8 @@ function bindResizeAndRestoreToKeys(key, resize_frame_fn)
                      local curWinFrame = curWin:frame()
                      local targetFrame = resize_frame_fn()
 
-                     if isPredefinedWinFrameSize() and not isAlmostEqualToCurWinFrame(targetFrame) then
+                     if isPredefinedWinFrameSize() and
+                        not isAlmostEqualToCurWinFrame(targetFrame) then
                         curWin:setFrame(targetFrame)
                      elseif previousFrameSizes[curWin:id()] then
                         curWin:setFrame(previousFrameSizes[curWin:id()])
@@ -145,3 +135,4 @@ function bindResizeAndRestoreToKeys(key, resize_frame_fn)
 end
 
 bindResizeAndRestoreToKeys("F", getMaxWinFrame)
+bindResizeAndRestoreToKeys("Q", getQuarterWinFrame)

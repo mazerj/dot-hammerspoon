@@ -1,5 +1,5 @@
 -- About `hyper` key:
---   I'm using Karabiner-Elements to define caps lock as hyper
+--   I'm using Hyperkey.app to define caps lock as hyper
 -- 
 --   NOTE: emacs isn't happy if shift is included here - apparently
 --   holding cmd-alt-ctrl-shift during startup will stop emacs from
@@ -20,21 +20,29 @@ end)
 
 -----------------------------------------------------------------------
 
--- open remote vscode on raclette
+-- vscode shortcuts -- open taut repo on different machines
+
+-- open taut dir in LOCAL vscode
 hs.hotkey.bind(hyper, "V", function()
-                  os.execute("~/scripts/code --remote ssh-remote+raclette /home/mazer/src/taut &")
+                  os.execute("~/scripts/code /Users/mazer/src/taut &")
 end)
 
--- eject all media
-hs.hotkey.bind(hyper, "E", function()
-                  hs.notify.new({title="Hammerspoon",
-                                 informativeText="Ejecting media"}):send()
-                  os.execute("~/scripts/ejectall &")
+-- open taut dir in REMOTE vscode on storm
+hs.hotkey.bind(hyper, "S", function()
+                  os.execute("~/scripts/code --remote ssh-remote+storm /home/mazer/src/taut &")
 end)
 
--- open journal stuff in notion
+-- open taut dir in REMOTE vscode on storm
+hs.hotkey.bind(hyper, "X", function()
+                  os.execute("~/scripts/code --remote ssh-remote+storm . &")
+end)
+
+
+-----------------------------------------------------------------------
+
+-- open journal in deft
 hs.hotkey.bind(hyper, "J", function()
-                  os.execute("~/scripts/chromedef https://www.notion.so &")
+                  os.execute("~/scripts/deft &")
 end)
 
 -- open terminal window
@@ -44,7 +52,7 @@ hs.hotkey.bind({"cmd"}, "1", function()
       os.execute("~/scripts/newiterm3")              
 end)
 
--- open personal chrome
+-- open personal/default chrome
 function gochrome()
    os.execute("~/scripts/chromedef &")
 end
@@ -59,6 +67,7 @@ hs.hotkey.bind(hyper, "C", gocal)
 -- open personal mail
 function gomail()
    os.execute("~/scripts/chromedef https://mail.google.com &")
+   os.execute("~/scripts/chromedec https://mail.google.com &")
 end
 hs.hotkey.bind(hyper, "M", gomail)
 
@@ -68,71 +77,21 @@ function gochromedec()
 end
 hs.hotkey.bind(hyper, "D", gochromedec)
 
------------------------------------------------------------------
-
--- from: https://github.com/waigx/hammerspoon-config/blob/master/init.lua
--- this binds hyper-F to toggle maximize window
-
-previousFrameSizes = {}
-
-function isAlmostEqualToCurWinFrame(geo)
-   local epsilon = 5
-   local curWin = hs.window.focusedWindow()
-   local curWinFrame = curWin:frame()
-   if math.abs(curWinFrame.x - geo.x) < epsilon and
-      math.abs(curWinFrame.y - geo.y) < epsilon and
-      math.abs(curWinFrame.w - geo.w) < epsilon and
-      math.abs(curWinFrame.h - geo.h) < epsilon then
-      return true
-   else
-      return false
-   end
+-- open taut notes
+function notes()
+   os.execute("~/scripts/chromedec https://docs.google.com/document/d/1mrSpHbJ2xw90aBl-NA1tujhg-VYPuIr3LYrTDSv38Zc/edit?usp=drive_link &")
 end
+hs.hotkey.bind(hyper, "T", notes)
 
-function getMaxWinFrame()
-   local curWin = hs.window.focusedWindow()
-   return curWin:screen():frame()
-end
+-- maximize window M-F
+require('maximize')
+require('winhighlight')
 
-function getQuarterWinFrame()
-   local curWin = hs.window.focusedWindow()
-   local curWinFrame = curWin:frame()
-   local maxFrame = curWin:screen():frame()
-   curWinFrame.x = maxFrame.x
-   curWinFrame.y = maxFrame.y
-   curWinFrame.w = maxFrame.w / 2
-   curWinFrame.h = maxFrame.h / 2
-   return curWinFrame
-end
+-- EjectMenu setup
+hs.loadSpoon("EjectMenu")
+spoon.EjectMenu:bindHotkeys({
+                        ejectAll = {hyper, "E"}
+        })
+-- spoon.show_in_menubar = true
+-- spoon.EjectMenu:start()
 
-function isPredefinedWinFrameSize()
-   if isAlmostEqualToCurWinFrame(getMaxWinFrame())
-      or isAlmostEqualToCurWinFrame(getQuarterWinFrame())
-   then
-      return true
-   else
-      return false
-   end
-end
-
-function bindResizeAndRestoreToKeys(key, resize_frame_fn)
-   hs.hotkey.bind(hyper, key, function()
-                     local curWin = hs.window.focusedWindow()
-                     local curWinFrame = curWin:frame()
-                     local targetFrame = resize_frame_fn()
-
-                     if isPredefinedWinFrameSize() and
-                        not isAlmostEqualToCurWinFrame(targetFrame) then
-                        curWin:setFrame(targetFrame)
-                     elseif previousFrameSizes[curWin:id()] then
-                        curWin:setFrame(previousFrameSizes[curWin:id()])
-                        previousFrameSizes[curWin:id()] = nil
-                     else
-                        previousFrameSizes[curWin:id()] = curWinFrame
-                        curWin:setFrame(targetFrame)
-                     end
-   end)
-end
-
-bindResizeAndRestoreToKeys("F", getMaxWinFrame)
-bindResizeAndRestoreToKeys("Q", getQuarterWinFrame)

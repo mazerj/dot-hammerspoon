@@ -11,59 +11,59 @@ hyper = {"cmd", "ctrl", "alt"}
 
 -- reload init file
 hs.hotkey.bind(hyper, "R", function()
-                  hs.reload()
+                               hs.reload()
 end)
 
 -- open journal in deft
 hs.hotkey.bind(hyper, "J", function()
-                      os.execute("~/scripts/deft &")
+                               os.execute("~/scripts/deft &")
 end)
 
 -- open terminal window
 hs.hotkey.bind({"cmd"}, "1", function()
-                        os.execute("~/scripts/newiterm3")              
+                                 os.execute("~/scripts/newiterm3")              
 end)
 
 -- open personal/default chrome
 hs.hotkey.bind(hyper, "G", function()
-                      os.execute("~/scripts/chromedef &")
+                               os.execute("~/scripts/chromedef &")
 end)
 
 -- open personal calendar
 hs.hotkey.bind(hyper, "C", function()
-                      os.execute("~/scripts/chromedef https://calendar.google.com &")
+                               os.execute("~/scripts/chromedef https://calendar.google.com &")
 end)
 
 -- open personal mail
 function gomail()
-   os.execute("~/scripts/chromedef https://mail.google.com &")
-   os.execute("~/scripts/chromedec https://mail.google.com &")
+    os.execute("~/scripts/chromedef https://mail.google.com &")
+    os.execute("~/scripts/chromedec https://mail.google.com &")
 end
 hs.hotkey.bind(hyper, "M", gomail)
 
 -- EjectMenu setup
 hs.loadSpoon("EjectMenu")
 spoon.EjectMenu:bindHotkeys({
-                        ejectAll = {hyper, "E"}
-        })
--- spoon.show_in_menubar = true
--- spoon.EjectMenu:start()
+    ejectAll = {hyper, "E"}
+})
+-- uncomment to show eject all in menubar:
+--  spoon.show_in_menubar = true
+--  spoon.EjectMenu:start()
 
 -- maximize window hyper-F
 require('maximize')
 
--- highlight border of focused window
+-- automatically highlight border of focused window
 require('winhighlight')
-
 
 
 -- only do this on work computers:
 
 hostname = hs.host.localizedName()
 if hostname == 'bridger' then
-   print "loading taut stuff"
-   require('taut')
+    print "loading taut stuff"
+    require('taut')
 else
-   print "skipped taut stuff"
+    print "skipped taut stuff"
 end
 

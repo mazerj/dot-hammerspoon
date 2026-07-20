@@ -30,7 +30,7 @@ hs.hotkey.bind(hyper, "G", function()
 end)
 
 -- open personal calendar
-hs.hotkey.bind(hyper, "C", 
+hs.hotkey.bind(hyper, "C", function()
                       os.execute("~/scripts/chromedef https://calendar.google.com &")
 end)
 
@@ -59,8 +59,8 @@ require('winhighlight')
 
 -- only do this on work computers:
 
-hostname = os.getenv('HOSTNAME')
-if hostnameVar and string.sub(hostname, 1, # "bridger") == "bridger" then
+hostname = hs.host.localizedName()
+if hostname == 'bridger' then
    print "loading taut stuff"
    require('taut')
 else

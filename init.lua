@@ -34,12 +34,18 @@ hs.hotkey.bind(hyper, "C", function()
                                os.execute("~/scripts/chromedef https://calendar.google.com &")
 end)
 
--- open personal mail
+-- open mail
 function gomail()
     os.execute("~/scripts/chromedef https://mail.google.com &")
     os.execute("~/scripts/chromedec https://mail.google.com &")
 end
 hs.hotkey.bind(hyper, "M", gomail)
+
+-- open taut chrome
+function gochromedec()
+   os.execute("~/scripts/chromedec &")
+end
+hs.hotkey.bind(hyper, "D", gochromedec)
 
 -- EjectMenu setup
 hs.loadSpoon("EjectMenu")

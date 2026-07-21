@@ -15,12 +15,6 @@ hs.hotkey.bind(hyper, "X", function()
                   os.execute("~/scripts/code --remote ssh-remote+storm . &")
 end)
 
--- open taut chrome
-function gochromedec()
-   os.execute("~/scripts/chromedec &")
-end
-hs.hotkey.bind(hyper, "D", gochromedec)
-
 -- open taut notes
 function notes()
    os.execute("~/scripts/chromedec https://docs.google.com/document/d/1mrSpHbJ2xw90aBl-NA1tujhg-VYPuIr3LYrTDSv38Zc/edit?usp=drive_link &")

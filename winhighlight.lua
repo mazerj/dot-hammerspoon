@@ -1,13 +1,17 @@
 
--- << start from https://gist.github.com/ianjamieson/6e0e983839227fe57ac86ce8909d7cb9
+-- original from https://gist.github.com/ianjamieson/6e0e983839227fe57ac86ce8909d7cb9
 
-local highlight = nil
+
+local highlight_color = {["red"] =  165/255.0, ["green"] = 208/255.0, ["blue"] = 168/255.0}
+local highlight_border_width = 7
+
+local current_highlight = nil
 
 local function highlightWindow()
     -- Clear any existing highlight
-    if highlight then
-        highlight:delete()
-        highlight = nil
+    if current_highlight then
+        current_highlight:delete()
+        current_highlight = nil
     end
 
     -- Get the currently focused window
@@ -19,26 +23,24 @@ local function highlightWindow()
     -- Get the frame of the focused window
     local frame = win:frame()
 
-    border_width = 7
     highlightFrame = hs.geometry.rect(
-        frame.x - border_width,
-        frame.y - border_width,
-        frame.w + (2 * border_width),
-        frame.h + (2 * border_width)
+        frame.x - highlight_border_width,
+        frame.y - highlight_border_width,
+        frame.w + (2 * highlight_border_width),
+        frame.h + (2 * highlight_border_width)
         )
-    
 
     -- Create the highlight rectangle
-    highlight = hs.drawing.rectangle(highlightFrame)
-    highlight:setStrokeColor(
-        {["red"] =  165/255.0, ["green"] = 208/255.0, ["blue"] = 168/255.0}
+    current_highlight = hs.drawing.rectangle(highlightFrame)
+    current_highlight:setStrokeColor(
+        highlight_color
         )
-    highlight:setStrokeWidth(border_width * 2)
-    highlight:setRoundedRectRadii(10, 10)
-    highlight:setFill(false)
+    current_highlight:setStrokeWidth(highlight_border_width * 2)
+    current_highlight:setRoundedRectRadii(10, 10)
+    current_highlight:setFill(false)
     
-    highlight:bringToFront(true) -- Ensure it's visible on top of the window
-    highlight:show()
+    current_highlight:bringToFront(true) -- Ensure it's visible on top of the window
+    current_highlight:show()
 end
 
 -- Bind the function to a hotkey (e.g., Ctrl + Alt + H)
@@ -50,17 +52,17 @@ hs.window.filter.default:subscribe(hs.window.filter.windowFocused, function()
 end)
 
 hs.window.filter.default:subscribe(hs.window.filter.windowUnfocused, function()
-    if highlight then
-        highlight:delete()
-        highlight = nil
+    if current_highlight then
+        current_highlight:delete()
+        current_highlight = nil
     end
 end)
 
 -- Automatically remove the highlight, and recreate it when the window is moved
 hs.window.filter.default:subscribe(hs.window.filter.windowMoved, function()
-    if highlight then
-        highlight:delete()
-        highlight = nil
+    if current_highlight then
+        current_highlight:delete()
+        current_highlight = nil
     end
     highlightWindow()
 end)

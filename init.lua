@@ -47,17 +47,28 @@ function gochromedec()
 end
 hs.hotkey.bind(hyper, "D", gochromedec)
 
--- EjectMenu setup
+
+-- WARNING: this generates
+-- "EjectMenu setupject Menu: Error ejecting volume /Volumes/time2..."
+--  I think it's because there are multiple volumes on one drive and they all get ejected
+-- on the first ejection and then it errors trying to eject the second..
 hs.loadSpoon("EjectMenu")
-spoon.EjectMenu:bindHotkeys({
-    ejectAll = {hyper, "E"}
-})
--- uncomment to show eject all in menubar:
---  spoon.show_in_menubar = true
---  spoon.EjectMenu:start()
+
+-- show eject all in menubar:
+spoon.show_in_menubar = true
+spoon.EjectMenu:start()
+
+-- bind ejectAll to hyper-E
+-- spoon.EjectMenu:bindHotkeys({
+--     ejectAll = {hyper, "E"}
+-- })
+
 
 -- maximize window hyper-F
 require('maximize')
+
+-- quadrant placement hyper-1..4
+require('quadrants')
 
 -- automatically highlight border of focused window
 require('winhighlight')

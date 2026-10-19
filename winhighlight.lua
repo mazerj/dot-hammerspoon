@@ -6,8 +6,8 @@
 
 local log = hs.logger.new('winhighlight', 'info')
 
-local highlight_color = {["red"] =  165/255.0, ["green"] = 208/255.0, ["blue"] = 168/255.0}
-local highlight_border_width = 7
+local highlight_color = {["red"] = 1.0, ["green"] = 0.5, ["blue"] = 0.0}
+local highlight_border_width = 4
 
 -- seconds between safety-net resyncs
 local RESYNC_INTERVAL = 1.0
@@ -15,12 +15,17 @@ local RESYNC_INTERVAL = 1.0
 local current_highlight = nil   -- hs.drawing rectangle, or nil
 local highlighted_id = nil      -- id of the window it surrounds
 
+-- hs.drawing rectangles clip to their path, so only the inner half of
+-- the stroke is visible. expand the frame by half the width and double
+-- the stroke so the visible band straddles the window edge (and its
+-- resize hot zone): width/2 outside, width/2 inside
 local function borderFrame(frame)
+    local half = highlight_border_width / 2
     return hs.geometry.rect(
-        frame.x - highlight_border_width,
-        frame.y - highlight_border_width,
-        frame.w + (2 * highlight_border_width),
-        frame.h + (2 * highlight_border_width))
+        frame.x - half,
+        frame.y - half,
+        frame.w + highlight_border_width,
+        frame.h + highlight_border_width)
 end
 
 local function clearHighlight()
@@ -59,7 +64,6 @@ local function highlightWindow(win)
     current_highlight = hs.drawing.rectangle(frame)
     current_highlight:setStrokeColor(highlight_color)
     current_highlight:setStrokeWidth(highlight_border_width * 2)
-    current_highlight:setRoundedRectRadii(10, 10)
     current_highlight:setFill(false)
     current_highlight:bringToFront(true) -- keep it above the window
     current_highlight:show()

@@ -70,7 +70,7 @@ require('maximize')
 -- quadrant placement hyper-1..4
 require('quadrants')
 
--- automatically highlight border of focused window
+-- automatically highlight focused window (titlebar tint or frame border)
 require('winhighlight')
 
 

@@ -1,31 +1,125 @@
 
 -- original from https://gist.github.com/ianjamieson/6e0e983839227fe57ac86ce8909d7cb9
 --
--- draws a border around the focused window. Window filter events drive
--- updates; a slow timer resyncs in case events are dropped or late.
+-- highlights the focused window, either by tinting its titlebar or by
+-- drawing a border around its frame (see HIGHLIGHT_MODE). Window filter
+-- events drive updates; a slow timer resyncs in case events are dropped
+-- or late.
 
 local log = hs.logger.new('winhighlight', 'info')
 
-local highlight_color = {["red"] = 1.0, ["green"] = 0.5, ["blue"] = 0.0}
+-- "titlebar" or "frame"
+local HIGHLIGHT_MODE = "titlebar"
+
+local titlebar_color = {["red"] = 1.0, ["green"] = 0.5, ["blue"] = 0.0, ["alpha"] = 0.35}
+local border_color = {["red"] = 1.0, ["green"] = 0.5, ["blue"] = 0.0}
 local highlight_border_width = 4
+
+-- standard macOS titlebar height, used when the AX lookup fails
+local DEFAULT_TITLEBAR_HEIGHT = 28
+
+-- cap on how long an AX query may block (a hung app would otherwise
+-- stall hammerspoon for the system default of several seconds)
+local AX_TIMEOUT = 0.25
 
 -- seconds between safety-net resyncs
 local RESYNC_INTERVAL = 1.0
 
 local current_highlight = nil   -- hs.drawing rectangle, or nil
-local highlighted_id = nil      -- id of the window it surrounds
+local highlighted_id = nil      -- id of the window it marks
+
+-- window id -> titlebar height. looked up once per window and assumed
+-- not to change
+local titlebar_heights = {}
+
+-- the traffic-light buttons are vertically centred in the titlebar
+-- (including unified toolbars), so the height is twice the distance
+-- from the window top to the close button's centre
+local function queryTitlebarHeight(win)
+    local axwin = hs.axuielement.windowElement(win)
+    if not axwin then return nil, "no AX element" end
+    axwin:setTimeout(AX_TIMEOUT)
+    local wpos = axwin:attributeValue("AXPosition")
+    local wsize = axwin:attributeValue("AXSize")
+    if not (wpos and wsize) then return nil, "no window position/size" end
+    local close = axwin:attributeValue("AXCloseButton")
+    if not close then return nil, "no close button" end
+    local cpos = close:attributeValue("AXPosition")
+    local csize = close:attributeValue("AXSize")
+    if not (cpos and csize) then return nil, "no close button position/size" end
+    local h = 2 * (cpos.y + csize.h / 2 - wpos.y)
+    if h <= 0 or h > wsize.h then
+        return nil, string.format("implausible height %.1f", h)
+    end
+    return h
+end
+
+local function titlebarHeight(win)
+    local id = win:id()
+    local h = id and titlebar_heights[id]
+    if h then return h end
+
+    local t0 = hs.timer.absoluteTime()
+    local ok, res, err = pcall(queryTitlebarHeight, win)
+    local ms = (hs.timer.absoluteTime() - t0) / 1e6
+    if not ok then
+        err, res = res, nil
+    end
+    if res then
+        log.f("titlebar height %.1f for %s (%s) in %.2f ms",
+            res, id, win:title(), ms)
+    else
+        res = DEFAULT_TITLEBAR_HEIGHT
+        log.f("titlebar lookup failed for %s (%s) in %.2f ms: %s; using %d",
+            id, win:title(), ms, tostring(err), res)
+    end
+    -- failures are cached too, so a misbehaving app isn't re-queried
+    -- on every resync
+    if id then titlebar_heights[id] = res end
+    return res
+end
+
+local function titlebarFrame(win)
+    local frame = win:frame()
+    return hs.geometry.rect(
+        frame.x, frame.y, frame.w, math.min(titlebarHeight(win), frame.h))
+end
 
 -- hs.drawing rectangles clip to their path, so only the inner half of
 -- the stroke is visible. expand the frame by half the width and double
 -- the stroke so the visible band straddles the window edge (and its
 -- resize hot zone): width/2 outside, width/2 inside
-local function borderFrame(frame)
+local function borderFrame(win)
+    local frame = win:frame()
     local half = highlight_border_width / 2
     return hs.geometry.rect(
         frame.x - half,
         frame.y - half,
         frame.w + highlight_border_width,
         frame.h + highlight_border_width)
+end
+
+local function styleTitlebar(drawing)
+    drawing:setFillColor(titlebar_color)
+    drawing:setFill(true)
+    drawing:setStroke(false)
+end
+
+local function styleBorder(drawing)
+    drawing:setStrokeColor(border_color)
+    drawing:setStrokeWidth(highlight_border_width * 2)
+    drawing:setFill(false)
+end
+
+local MODES = {
+    titlebar = { frame = titlebarFrame, style = styleTitlebar },
+    frame    = { frame = borderFrame,   style = styleBorder },
+}
+
+local mode = MODES[HIGHLIGHT_MODE]
+if not mode then
+    log.ef("unknown HIGHLIGHT_MODE %q, using titlebar", tostring(HIGHLIGHT_MODE))
+    mode = MODES.titlebar
 end
 
 local function clearHighlight()
@@ -38,7 +132,7 @@ end
 
 -- true when event window `win` is the one currently highlighted. a
 -- destroyed window may no longer report an id; treat that as a match
--- so a stale border never survives
+-- so a stale highlight never survives
 local function isHighlighted(win)
     if not highlighted_id then return false end
     local id = win and win:id()
@@ -52,9 +146,9 @@ local function highlightWindow(win)
     end
 
     local id = win:id()
-    local frame = borderFrame(win:frame())
+    local frame = mode.frame(win)
 
-    -- same window: just move/resize the existing border (no flicker)
+    -- same window: just move/resize the existing highlight (no flicker)
     if current_highlight and id == highlighted_id then
         current_highlight:setFrame(frame)
         return
@@ -62,16 +156,14 @@ local function highlightWindow(win)
 
     clearHighlight()
     current_highlight = hs.drawing.rectangle(frame)
-    current_highlight:setStrokeColor(highlight_color)
-    current_highlight:setStrokeWidth(highlight_border_width * 2)
-    current_highlight:setFill(false)
+    mode.style(current_highlight)
     current_highlight:bringToFront(true) -- keep it above the window
     current_highlight:show()
     highlighted_id = id
     log.df("highlight window %s (%s)", id, win:title())
 end
 
--- reconcile the border with whatever is actually focused right now
+-- reconcile the highlight with whatever is actually focused right now
 local function resync()
     local win = hs.window.focusedWindow()
     local id = win and win:id()
@@ -79,7 +171,7 @@ local function resync()
         log.df("resync: highlighted %s, focused %s", highlighted_id, id)
         highlightWindow(win)
     elseif win and current_highlight then
-        local want = borderFrame(win:frame())
+        local want = mode.frame(win)
         local have = current_highlight:frame()
         if want.x ~= have.x or want.y ~= have.y or
            want.w ~= have.w or want.h ~= have.h then
@@ -104,6 +196,11 @@ wf.default:subscribe(
     function(win)
         if isHighlighted(win) then clearHighlight() end
     end)
+
+wf.default:subscribe(wf.windowDestroyed, function(win)
+    local id = win and win:id()
+    if id then titlebar_heights[id] = nil end
+end)
 
 wf.default:subscribe(wf.windowMoved, function(win)
     if isHighlighted(win) then highlightWindow(win) end

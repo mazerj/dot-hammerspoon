@@ -11,7 +11,8 @@ local log = hs.logger.new('winhighlight', 'info')
 -- "titlebar" or "frame"
 local HIGHLIGHT_MODE = "titlebar"
 
-local titlebar_color = {["red"] = 1.0, ["green"] = 0.5, ["blue"] = 0.0, ["alpha"] = 0.35}
+-- local titlebar_color = {["red"] = 1.0, ["green"] = 0.5, ["blue"] = 0.0, ["alpha"] = 0.35}
+local titlebar_color = {["red"] = 0.0, ["green"] = 0.5, ["blue"] = 0.0, ["alpha"] = 0.35}
 local border_color = {["red"] = 1.0, ["green"] = 0.5, ["blue"] = 0.0}
 local highlight_border_width = 4
 

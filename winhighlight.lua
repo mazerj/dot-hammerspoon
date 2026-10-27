@@ -1,18 +1,21 @@
 
 -- original from https://gist.github.com/ianjamieson/6e0e983839227fe57ac86ce8909d7cb9
 --
--- highlights the focused window, either by tinting its titlebar or by
--- drawing a border around its frame (see HIGHLIGHT_MODE). Window filter
--- events drive updates; a slow timer resyncs in case events are dropped
--- or late.
+-- highlights the focused window, either by covering its titlebar with
+-- translucent hazard stripes or by drawing a border around its frame
+-- (see HIGHLIGHT_MODE). Window filter events drive updates; a slow timer
+-- resyncs in case events are dropped or late.
 
 local log = hs.logger.new('winhighlight', 'info')
 
 -- "titlebar" or "frame"
 local HIGHLIGHT_MODE = "titlebar"
 
--- local titlebar_color = {["red"] = 1.0, ["green"] = 0.5, ["blue"] = 0.0, ["alpha"] = 0.35}
-local titlebar_color = {["red"] = 0.0, ["green"] = 0.5, ["blue"] = 0.0, ["alpha"] = 0.35}
+-- titlebar hazard stripes: 45 degree yellow bands with clear gaps,
+-- drawn translucent so the title stays readable
+local stripe_yellow = {["red"] = 1.0, ["green"] = 0.8, ["blue"] = 0.0}
+local stripe_width = 30
+local stripe_alpha = 0.4
 local border_color = {["red"] = 1.0, ["green"] = 0.5, ["blue"] = 0.0}
 local highlight_border_width = 4
 
@@ -26,7 +29,7 @@ local AX_TIMEOUT = 0.25
 -- seconds between safety-net resyncs
 local RESYNC_INTERVAL = 1.0
 
-local current_highlight = nil   -- hs.drawing rectangle, or nil
+local current_highlight = nil   -- hs.canvas, or nil
 local highlighted_id = nil      -- id of the window it marks
 
 -- window id -> titlebar height. looked up once per window and assumed
@@ -86,7 +89,7 @@ local function titlebarFrame(win)
         frame.x, frame.y, frame.w, math.min(titlebarHeight(win), frame.h))
 end
 
--- hs.drawing rectangles clip to their path, so only the inner half of
+-- canvas elements clip to the canvas, so only the inner half of
 -- the stroke is visible. expand the frame by half the width and double
 -- the stroke so the visible band straddles the window edge (and its
 -- resize hot zone): width/2 outside, width/2 inside
@@ -100,16 +103,39 @@ local function borderFrame(win)
         frame.h + highlight_border_width)
 end
 
-local function styleTitlebar(drawing)
-    drawing:setFillColor(titlebar_color)
-    drawing:setFill(true)
-    drawing:setStroke(false)
+-- stripes use absolute coordinates, so resizing the canvas reveals or
+-- clips them rather than stretching them. they're drawn wide enough for
+-- the widest screen so a resize never needs a rebuild
+local function styleTitlebar(canvas)
+    local frame = canvas:frame()
+    local h = frame.h
+    local span = frame.w
+    for _, screen in ipairs(hs.screen.allScreens()) do
+        span = math.max(span, screen:fullFrame().w)
+    end
+    -- start one titlebar height left of the origin so the slanted first
+    -- band covers the left edge
+    for x = -h, span, 2 * stripe_width do
+        canvas[#canvas + 1] = {
+            type = "segments", closed = true, action = "fill",
+            fillColor = stripe_yellow,
+            coordinates = {
+                { x = x,                    y = h },
+                { x = x + stripe_width,     y = h },
+                { x = x + stripe_width + h, y = 0 },
+                { x = x + h,                y = 0 },
+            },
+        }
+    end
+    canvas:alpha(stripe_alpha)
 end
 
-local function styleBorder(drawing)
-    drawing:setStrokeColor(border_color)
-    drawing:setStrokeWidth(highlight_border_width * 2)
-    drawing:setFill(false)
+local function styleBorder(canvas)
+    canvas[1] = {
+        type = "rectangle", action = "stroke",
+        strokeColor = border_color,
+        strokeWidth = highlight_border_width * 2,
+    }
 end
 
 local MODES = {
@@ -151,12 +177,12 @@ local function highlightWindow(win)
 
     -- same window: just move/resize the existing highlight (no flicker)
     if current_highlight and id == highlighted_id then
-        current_highlight:setFrame(frame)
+        current_highlight:frame(frame)
         return
     end
 
     clearHighlight()
-    current_highlight = hs.drawing.rectangle(frame)
+    current_highlight = hs.canvas.new(frame)
     mode.style(current_highlight)
     current_highlight:bringToFront(true) -- keep it above the window
     current_highlight:show()
@@ -176,7 +202,7 @@ local function resync()
         local have = current_highlight:frame()
         if want.x ~= have.x or want.y ~= have.y or
            want.w ~= have.w or want.h ~= have.h then
-            current_highlight:setFrame(want)
+            current_highlight:frame(want)
         end
     end
 end
